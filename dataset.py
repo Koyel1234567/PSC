@@ -11,6 +11,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import classification_report
 from collections import Counter
+from flask import Flask, render_template, request
+from waitress import serve
+
+app = Flask(__name__) 
 
 filterwarnings("ignore")
 data = pd.read_csv('C:/Users/K Sarkar/OneDrive/Documents/GitHub/PSC/data.csv', on_bad_lines='skip')
@@ -111,28 +115,39 @@ y_pred = clf.predict(X_test)
 Counter(y_pred) 
 classification_report(y_test, y_pred)
 
-def predict():
-    password = input("Enter a password : ")
-    sample_array = np.array([password])
-    
-    # 151 dimension
-    sample_matrix = vectorizer.transform(sample_array) 
-    
-    # +2 dimension
-    length_pass = len(password)
-    length_normalised_lowercase = len([char for char in password if char.islower()])/len(password)
-    
-    # 151 + 2 
-    new_matrix2 = np.append(sample_matrix.toarray() , (length_pass , length_normalised_lowercase)).reshape(1,155)
-    
-    result = clf.predict(new_matrix2)
-    
-    if result == 0 :
-        return "Password is weak"
-    elif result == 1 :
-        return "Password is normal"
-    else:
-        return "password is strong"
+@app.route('/pass', methods=['GET', 'POST'])
+def home():
+    if request.method == 'POST':
 
-a=predict()
-print(a)
+        if(request.args.get('password') == ''):
+            return "<html><body> <h1>Invalid password</h1></body></html>"
+        else:
+            password = request.args.get('password')
+            def predict():
+                sample_array = np.array([password])
+        
+                sample_matrix = vectorizer.transform(sample_array) 
+        
+                length_pass = len(password)
+                length_normalised_lowercase = len([char for char in password if char.islower()])/len(password)
+        
+                new_matrix2 = np.append(sample_matrix.toarray() , (length_pass , length_normalised_lowercase)).reshape(1,155)
+        
+                result = clf.predict(new_matrix2)
+        
+                if result == 0 :
+                    return "Password is weak"
+                elif result == 1 :
+                    return  "Password is normal"
+                else:
+                    return"password is strong"
+                
+            r =  predict()
+            return render_template('answer.html', result= r)
+        
+    if request.method == 'GET':
+        return render_template("index.html")
+
+
+if __name__ == '__main__':
+    serve(app,host='0.0.0.0',port=50100, threads=2)
